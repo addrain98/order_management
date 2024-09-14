@@ -57,6 +57,67 @@ app.post('/add-order', (req, res) => {
   res.json({ message: 'Order added successfully', order });
 });
 
+// Route to get a single order by customerID
+app.get('/get-order/:customerID', (req, res) => {
+  const customerID = req.params.customerID;
+  const order = orders.find(order => order.customerID == customerID);
+  
+  if (order) {
+    res.json(order);
+  } else {
+    res.status(404).json({ error: 'Order not found' });
+  }
+});
+
+// Route to update an existing order
+app.put('/update-order/:customerID', (req, res) => {
+  const customerID = req.params.customerID;
+  const { productsOrdered, sgtTime } = req.body;
+
+  const orderIndex = orders.findIndex(order => order.customerID == customerID);
+  if (orderIndex === -1) {
+    return res.status(404).json({ error: 'Order not found' });
+  }
+
+  // Update the order details
+  let totalPrice = 0;
+  const detailedProducts = productsOrdered.map(item => {
+    const product = products.find(p => p.id == item.productId);
+    const productTotal = product.price * item.quantity;
+    totalPrice += productTotal;
+
+    return {
+      productName: product.name,
+      price: product.price,
+      quantity: item.quantity,
+      total: productTotal
+    };
+  });
+
+  // Update the order
+  orders[orderIndex] = {
+    customerID,
+    productsOrdered: detailedProducts,
+    totalPrice,
+    sgtTime
+  };
+
+  res.json({ message: 'Order updated successfully', order: orders[orderIndex] });
+});
+
+// Route to delete an order by customer ID
+app.delete('/delete-order/:customerID', (req, res) => {
+  const customerID = req.params.customerID;
+  const index = orders.findIndex(order => order.customerID == customerID);
+
+  if (index !== -1) {
+    orders.splice(index, 1); // Remove the order from the array
+    res.json({ message: 'Order deleted successfully' });
+  } else {
+    res.status(404).json({ error: 'Order not found' });
+  }
+});
+
 // Route to export orders as CSV
 app.get('/export-csv', (req, res) => {
   const fields = ['customerID', 'productName', 'quantity', 'price', 'total', 'sgtTime'];
